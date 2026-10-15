@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tile Board</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+        background: #f4f1eb; font-family: -apple-system, "Segoe UI", sans-serif; color: #1b1b1b; }
+      .card { width: min(360px, calc(100% - 32px)); background: #fff; border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08); padding: 28px; }
+      h1 { margin: 0 0 8px; font-size: 22px; }
+      p { margin: 0 0 20px; color: #5c5c5c; line-height: 1.5; }
+      button { border: 0; border-radius: 10px; padding: 12px 18px; font-size: 15px;
+        background: #1b1b1b; color: #fff; cursor: pointer; }
+      .saved { display: none; margin-top: 14px; color: #2f7d32; }
+      .saved.shown { display: block; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Tile Board</h1>
+      <p>Save the tiles you like and come back to them later.</p>
+      <button id="save" type="button">Save tile</button>
+      <div class="saved" id="saved">Tile saved.</div>
+    </main>
+    <script>
+      document.getElementById("save").addEventListener("click", () => {
+        document.getElementById("saved").classList.add("shown");
+      });
+    </script>
+  </body>
+</html>
