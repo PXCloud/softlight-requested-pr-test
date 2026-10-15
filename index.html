@@ -15,18 +15,23 @@
         background: #1b1b1b; color: #fff; cursor: pointer; }
       .saved { display: none; margin-top: 14px; color: #2f7d32; }
       .saved.shown { display: block; }
+      .saved a { color: inherit; margin-left: 6px; }
     </style>
   </head>
   <body>
     <main class="card">
       <h1>Tile Board</h1>
       <p>Save the tiles you like and come back to them later.</p>
-      <button id="save" type="button">Save tile</button>
-      <div class="saved" id="saved">Tile saved.</div>
+      <button id="save" type="button">Save to board</button>
+      <div class="saved" id="saved">Saved to <strong>Inspiration</strong>. <a href="#" id="undo">Undo</a></div>
     </main>
     <script>
       document.getElementById("save").addEventListener("click", () => {
         document.getElementById("saved").classList.add("shown");
+      });
+      document.getElementById("undo").addEventListener("click", (event) => {
+        event.preventDefault();
+        document.getElementById("saved").classList.remove("shown");
       });
     </script>
   </body>
