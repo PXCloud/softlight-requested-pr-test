@@ -4,29 +4,195 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tile Board</title>
+    <link rel="canonical" href="https://tileboard.app/" />
     <style>
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-        background: #f4f1eb; font-family: -apple-system, "Segoe UI", sans-serif; color: #1b1b1b; }
-      .card { width: min(360px, calc(100% - 32px)); background: #fff; border-radius: 16px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08); padding: 28px; }
-      h1 { margin: 0 0 8px; font-size: 22px; }
-      p { margin: 0 0 20px; color: #5c5c5c; line-height: 1.5; }
-      button { border: 0; border-radius: 10px; padding: 12px 18px; font-size: 15px;
-        background: #1b1b1b; color: #fff; cursor: pointer; }
-      .saved { display: none; margin-top: 14px; color: #2f7d32; }
-      .saved.shown { display: block; }
+      :root { --ink: #1b1b1b; --muted: #6b6b6b; --line: #e7e2d8; --bg: #f4f1eb; --card: #fff; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink);
+        font-family: -apple-system, "Segoe UI", sans-serif; padding-bottom: 72px; }
+      header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center;
+        justify-content: space-between; padding: 14px 16px; background: rgba(244, 241, 235, 0.92);
+        backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+      header h1 { margin: 0; font-size: 20px; }
+      header span { color: var(--muted); font-size: 14px; }
+      .filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 4px; }
+      .chip { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px;
+        padding: 7px 14px; font-size: 14px; }
+      .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px 8px; }
+      .tile { background: var(--card); border-radius: 14px; overflow: hidden;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06); }
+      .art { aspect-ratio: 4 / 5; }
+      .meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px; }
+      .meta b { font-size: 13px; font-weight: 600; }
+      .save { flex: none; border: 0; border-radius: 999px; padding: 6px 12px; font-size: 13px;
+        background: var(--ink); color: #fff; }
+      .save.done { background: #e9f3ea; color: #2f7d32; }
+      .signup { margin: 16px 16px 24px; padding: 20px; background: var(--card); border-radius: 16px; }
+      .signup h2 { margin: 0 0 6px; font-size: 18px; }
+      .signup p { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+      .row { display: flex; gap: 8px; }
+      input, textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+        font: inherit; font-size: 16px; background: #fbfaf7; }
+      .primary { border: 0; border-radius: 10px; padding: 11px 16px; font-size: 15px;
+        background: var(--ink); color: #fff; }
+      .primary:disabled { opacity: 0.35; }
+      nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex;
+        justify-content: space-around; padding: 10px 0 12px; background: var(--card);
+        border-top: 1px solid var(--line); }
+      nav.tabs a { color: var(--muted); text-decoration: none; font-size: 12px; display: grid;
+        justify-items: center; gap: 3px; }
+      nav.tabs a.on { color: var(--ink); font-weight: 600; }
+      nav.tabs i { width: 22px; height: 22px; border-radius: 7px; background: currentColor; opacity: 0.85; }
+      .cookie { position: fixed; left: 12px; right: 12px; bottom: 76px; z-index: 7; display: flex;
+        align-items: center; gap: 12px; padding: 14px; border-radius: 14px; background: var(--ink);
+        color: #fff; font-size: 14px; line-height: 1.4; }
+      .cookie button { flex: none; border: 0; border-radius: 8px; padding: 8px 12px; background: #fff;
+        color: var(--ink); font-size: 14px; }
+      .cookie[hidden] { display: none; }
+      .scrim { position: fixed; inset: 0; z-index: 10; background: rgba(0, 0, 0, 0.35); display: none; }
+      .scrim.open { display: block; }
+      .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; padding: 10px 16px 20px;
+        background: var(--card); border-radius: 20px 20px 0 0; transform: translateY(110%);
+        transition: transform 0.28s ease; }
+      .sheet.open { transform: none; }
+      .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
+      .sheet h3 { margin: 0 0 4px; font-size: 18px; }
+      .sheet p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+      .sheet label { display: block; margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+      .sheet textarea { height: 76px; resize: none; margin-bottom: 14px; }
+      .sheet input { margin-bottom: 12px; }
+      .actions { display: flex; gap: 8px; }
+      .actions button { flex: 1; }
+      .ghost { border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; font-size: 15px;
+        background: var(--card); color: var(--ink); }
+      .toast { position: fixed; left: 16px; right: 16px; bottom: 84px; z-index: 8; display: none;
+        align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 12px;
+        background: var(--ink); color: #fff; font-size: 14px; }
+      .toast.shown { display: flex; }
+      .toast button { border: 0; background: none; color: #f6c26b; font-size: 14px; font-weight: 600; }
     </style>
   </head>
   <body>
-    <main class="card">
+    <header>
       <h1>Tile Board</h1>
-      <p>Save the tiles you like and come back to them later.</p>
-      <button id="save" type="button">Save tile</button>
-      <div class="saved" id="saved">Tile saved.</div>
-    </main>
+      <span id="count">0 saved</span>
+    </header>
+    <div class="filters" role="tablist">
+      <button class="chip on" type="button">All</button>
+      <button class="chip" type="button">Warm</button>
+      <button class="chip" type="button">Cool</button>
+      <button class="chip" type="button">Pattern</button>
+      <button class="chip" type="button">Stone</button>
+    </div>
+    <main class="grid" id="grid"></main>
+    <section class="signup">
+      <h2>New tiles every week</h2>
+      <p>One email on Fridays with the tiles people saved most.</p>
+      <form class="row" id="signup">
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        <button class="primary" id="subscribe" type="submit" disabled>Join</button>
+      </form>
+    </section>
+    <nav class="tabs">
+      <a class="on" href="#"><i></i>Home</a>
+      <a href="#"><i></i>Search</a>
+      <a href="#"><i></i>Saved</a>
+      <a href="#"><i></i>Profile</a>
+    </nav>
+    <div class="cookie" id="cookie">
+      <span>We keep a cookie so your boards are here next time.</span>
+      <button id="accept" type="button">OK</button>
+    </div>
+    <div class="toast" id="toast"><span id="toast-text"></span><button id="undo" type="button">Undo</button></div>
+    <div class="scrim" id="scrim"></div>
+    <form class="sheet" id="sheet" aria-label="Save tile">
+      <div class="grab"></div>
+      <h3 id="sheet-title">Save tile</h3>
+      <p>Pick a name for a new board.</p>
+      <label for="board">Board name</label>
+      <input id="board" placeholder="Kitchen ideas" autocomplete="off" />
+      <label for="note">Note (optional)</label>
+      <textarea id="note" placeholder="Where would it go?"></textarea>
+      <div class="actions">
+        <button class="ghost" id="cancel" type="button">Cancel</button>
+        <button class="primary" id="confirm" type="submit" disabled>Save</button>
+      </div>
+    </form>
     <script>
-      document.getElementById("save").addEventListener("click", () => {
-        document.getElementById("saved").classList.add("shown");
+      const tiles = [
+        ["Terracotta arch", "#c9714f", "#e9b48f"], ["Morning fog", "#aab8c2", "#e3e8ec"],
+        ["Olive weave", "#6f7a45", "#b6bd8a"], ["Harbor blue", "#2f5d7c", "#7fa7c2"],
+        ["Sand dune", "#d8b98a", "#f1e2c6"], ["Ink check", "#22252b", "#6b7079"],
+        ["Rose clay", "#c98a8a", "#efcfc8"], ["Sage hex", "#86a28d", "#cfdccf"],
+        ["Saffron fan", "#d99a2b", "#f3d38c"], ["Slate rain", "#5d6670", "#a7b0b8"],
+        ["Moss stone", "#55634a", "#9aa78b"], ["Chalk scallop", "#e7e1d6", "#fbf8f2"],
+      ];
+      const grid = document.getElementById("grid");
+      tiles.forEach(([name, a, b], i) => {
+        const tile = document.createElement("article");
+        tile.className = "tile";
+        tile.innerHTML =
+          `<div class="art" style="background:linear-gradient(${30 + i * 25}deg, ${a}, ${b})"></div>` +
+          `<div class="meta"><b>${name}</b><button class="save" type="button">Save</button></div>`;
+        tile.querySelector(".save").addEventListener("click", () => openSheet(name, tile));
+        grid.appendChild(tile);
+      });
+      const $ = (id) => document.getElementById(id);
+      let saving = null;
+      let saved = 0;
+      function openSheet(name, tile) {
+        saving = { name, tile };
+        $("sheet-title").textContent = `Save "${name}"`;
+        $("board").value = "";
+        $("note").value = "";
+        $("confirm").disabled = true;
+        $("scrim").classList.add("open");
+        $("sheet").classList.add("open");
+      }
+      function closeSheet() {
+        $("scrim").classList.remove("open");
+        $("sheet").classList.remove("open");
+        document.activeElement && document.activeElement.blur();
+      }
+      $("board").addEventListener("input", () => {
+        $("confirm").disabled = !$("board").value.trim();
+      });
+      $("cancel").addEventListener("click", closeSheet);
+      $("scrim").addEventListener("click", closeSheet);
+      $("sheet").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const board = $("board").value.trim();
+        if (!board || !saving) return;
+        const button = saving.tile.querySelector(".save");
+        button.textContent = "Saved";
+        button.classList.add("done");
+        saved += 1;
+        $("count").textContent = `${saved} saved`;
+        $("toast-text").textContent = `Saved to ${board}`;
+        $("toast").classList.add("shown");
+        $("undo").onclick = () => {
+          button.textContent = "Save";
+          button.classList.remove("done");
+          saved -= 1;
+          $("count").textContent = `${saved} saved`;
+          $("toast").classList.remove("shown");
+        };
+        setTimeout(() => $("toast").classList.remove("shown"), 4000);
+        closeSheet();
+        saving = null;
+      });
+      $("accept").addEventListener("click", () => {
+        $("cookie").hidden = true;
+      });
+      $("email").addEventListener("input", () => {
+        $("subscribe").disabled = !/^\S+@\S+\.\S+$/.test($("email").value);
+      });
+      $("signup").addEventListener("submit", (event) => {
+        event.preventDefault();
+        $("subscribe").textContent = "Joined";
+        $("subscribe").disabled = true;
+        $("email").blur();
       });
     </script>
   </body>
